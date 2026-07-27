@@ -1,113 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Indeed Recent Postings</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>Indeed Recent Jobs (Frontend Only)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      padding: 1.5rem 2rem;
-      border-bottom: 1px solid #1f2937;
-      background: radial-gradient(circle at top left, #1d4ed8 0, #0f172a 45%);
-    }
-    header h1 { margin: 0; font-size: 1.4rem; }
-    main { max-width: 960px; margin: 2rem auto; padding: 0 1.5rem 3rem; }
-    .controls { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem; }
-    .controls input, .controls button {
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.375rem;
-      border: 1px solid #374151;
-      background: #020617;
-      color: #e5e7eb;
-    }
-    .controls button { background: #2563eb; border-color: #2563eb; cursor: pointer; }
-    .controls button:hover { background: #1d4ed8; }
-    .status { font-size: 0.85rem; color: #9ca3af; min-height: 1.2rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
-    .card {
-      background: #020617;
-      border-radius: 0.75rem;
-      border: 1px solid #1f2937;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-    }
-    .card h2 { margin: 0; font-size: 1rem; }
-    .card .meta { font-size: 0.85rem; color: #9ca3af; }
-    .card a { margin-top: 0.6rem; font-size: 0.85rem; color: #60a5fa; text-decoration: none; }
-    .card a:hover { text-decoration: underline; }
+    body { background:#0f172a; color:#e5e7eb; font-family:sans-serif; margin:0; padding:20px; }
+    input, button { padding:10px; border-radius:6px; border:1px solid #334155; background:#1e293b; color:#e5e7eb; }
+    button { background:#2563eb; cursor:pointer; }
+    .job { background:#1e293b; padding:15px; margin:10px 0; border-radius:8px; }
+    a { color:#60a5fa; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Indeed Recent Postings</h1>
-  </header>
 
-  <main>
-    <section class="controls">
-      <input id="query" type="text" placeholder="Role (e.g. frontend developer)" />
-      <input id="location" type="text" placeholder="Location (e.g. Calgary)" />
-      <button id="fetchBtn">Fetch postings</button>
-      <div class="status" id="status"></div>
-    </section>
+<h2>Indeed Recent Jobs (Frontend Only)</h2>
 
-    <section class="grid" id="results"></section>
-  </main>
+<input id="query" placeholder="Job title (e.g. frontend developer)">
+<input id="location" placeholder="Location (e.g. Calgary)">
+<button onclick="fetchJobs()">Search</button>
 
-  <script>
-    async function fetchJobs() {
-      const q = document.getElementById("query").value.trim();
-      const location = document.getElementById("location").value.trim();
+<div id="status"></div>
+<div id="results"></div>
 
-      const status = document.getElementById("status");
-      const results = document.getElementById("results");
+<script>
+async function fetchJobs() {
+  const q = document.getElementById("query").value;
+  const loc = document.getElementById("location").value;
 
-      status.textContent = "Loading...";
-      results.innerHTML = "";
+  document.getElementById("status").innerText = "Loading...";
+  document.getElementById("results").innerHTML = "";
 
-      try {
-        const url = `https://indeed-job-scraper.vercel.app/api/jobs?q=${encodeURIComponent(q)}&l=${encodeURIComponent(location)}`;
+  const url = `https://serpapi.com/search.json?engine=google_jobs&q=${encodeURIComponent(q + " " + loc)}&api_key=YOUR_SERPAPI_KEY`;
 
-        const res = await fetch(url);
-        const data = await res.json();
+  const res = await fetch(url);
+  const data = await res.json();
 
-        if (!data || !data.length) {
-          status.textContent = "No postings found.";
-          return;
-        }
+  const jobs = data.jobs_results || [];
 
-        status.textContent = `Showing ${data.length} postings`;
+  document.getElementById("status").innerText = `Found ${jobs.length} jobs`;
 
-        data.forEach(job => {
-          const card = document.createElement("article");
-          card.className = "card";
+  jobs.forEach(job => {
+    const div = document.createElement("div");
+    div.className = "job";
 
-          card.innerHTML = `
-            <h2>${job.title || "Untitled role"}</h2>
-            <div class="meta">
-              ${job.company || "Unknown company"} • 
-              ${job.location || "Unknown location"} • 
-              Posted ${job.date || "N/A"}
-            </div>
-            <a href="${job.link}" target="_blank">View on Indeed</a>
-          `;
+    div.innerHTML = `
+      <h3>${job.title}</h3>
+      <p>${job.company_name || ""} — ${job.location || ""}</p>
+      <p>${job.detected_extensions?.posted_at || ""}</p>
+      <a href="${job.apply_options?.[0]?.link || job.apply_link}" target="_blank">View Job</a>
+    `;
 
-          results.appendChild(card);
-        });
-      } catch (err) {
-        status.textContent = "Error fetching jobs.";
-      }
-    }
+    document.getElementById("results").appendChild(div);
+  });
+}
+</script>
 
-    document.getElementById("fetchBtn").addEventListener("click", fetchJobs);
-  </script>
 </body>
 </html>
