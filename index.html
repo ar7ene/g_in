@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Recent Indeed Postings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: radial-gradient(circle at top left, #1d4ed8 0, #0f172a 45%);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.04em;
+    }
+
+    header span {
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1.5rem 3rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      align-items: center;
+    }
+
+    .controls input,
+    .controls select,
+    .controls button {
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.9rem;
+    }
+
+    .controls button {
+      background: #2563eb;
+      border-color: #2563eb;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .controls button:hover {
+      background: #1d4ed8;
+    }
+
+    .status {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      min-height: 1.2rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: #020617;
+      border-radius: 0.75rem;
+      border: 1px solid #1f2937;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.7);
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 1rem;
+      color: #e5e7eb;
+    }
+
+    .card .meta {
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    .card .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.4rem;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      color: #9ca3af;
+    }
+
+    .card a {
+      margin-top: 0.6rem;
+      font-size: 0.85rem;
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    .card a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Indeed Recent Postings</h1>
+      <span>Client-side UI — expects a JSON API at <code>/api/jobs</code></span>
+    </div>
+    <span>Demo</span>
+  </header>
+
+  <main>
+    <section class="controls">
+      <input id="query" type="text" placeholder="Role (e.g. frontend, nurse)" />
+      <input id="location" type="text" placeholder="Location (e.g. Calgary, remote)" />
+      <select id="days">
+        <option value="1">Posted in last 1 day</option>
+        <option value="3">Posted in last 3 days</option>
+        <option value="7" selected>Posted in last 7 days</option>
+      </select>
+      <button id="fetchBtn">Fetch postings</button>
+      <div class="status" id="status"></div>
+    </section>
+
+    <section class="grid" id="results"></section>
+  </main>
+
+  <script>
+    const fetchBtn = document.getElementById("fetchBtn");
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+
+    async function fetchJobs() {
+      const query = document.getElementById("query").value.trim();
+      const location = document.getElementById("location").value.trim();
+      const days = document.getElementById("days").value;
+
+      statusEl.textContent = "Loading recent postings…";
+      resultsEl.innerHTML = "";
+
+      try {
+        // This endpoint must be implemented on your backend.
+        // It should return JSON like:
+        // [
+        //   {
+        //     "title": "Frontend Developer",
+        //     "company": "Acme Corp",
+        //     "location": "Calgary, AB",
+        //     "posted_at": "2026-07-25",
+        //     "url": "https://ca.indeed.com/viewjob?jk=...",
+        //     "salary": "CAD 90k–110k",
+        //     "type": "Full-time"
+        //   },
+        //   ...
+        // ]
+        const params = new URLSearchParams({
+          q: query,
+          location: location,
+          days: days
+        });
+
+        const res = await fetch("/api/jobs?" + params.toString(), {
+          method: "GET"
+        });
+
+        if (!res.ok) {
+          throw new Error("API error: " + res.status);
+        }
+
+        const jobs = await res.json();
+
+        if (!Array.isArray(jobs) || jobs.length === 0) {
+          statusEl.textContent = "No postings found for this filter.";
+          return;
+        }
+
+        statusEl.textContent = `Showing ${jobs.length} recent postings`;
+
+        jobs.forEach(job => {
+          const card = document.createElement("article");
+          card.className = "card";
+
+          const title = document.createElement("h2");
+          title.textContent = job.title || "Untitled role";
+
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = [
+            job.company || "Unknown company",
+            job.location || "Location not specified",
+            job.posted_at ? `Posted: ${job.posted_at}` : null
+          ]
+            .filter(Boolean)
+            .join(" • ");
+
+          const tags = document.createElement("div");
+          tags.className = "tags";
+
+          if (job.salary) {
+            const t = document.createElement("span");
+            t.className = "tag";
+            t.textContent = job.salary;
+            tags.appendChild(t);
+          }
+
+          if (job.type) {
+            const t = document.createElement("span");
+            t.className = "tag";
+            t.textContent = job.type;
+            tags.appendChild(t);
+          }
+
+          const link = document.createElement("a");
+          link.href = job.url || "#";
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = "View on Indeed";
+
+          card.appendChild(title);
+          card.appendChild(meta);
+          if (tags.children.length > 0) card.appendChild(tags);
+          card.appendChild(link);
+
+          resultsEl.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Failed to load postings. Check your backend or network.";
+      }
+    }
+
+    fetchBtn.addEventListener("click", fetchJobs);
+
+    // Optional: auto-load on page open with default filters
+    // fetchJobs();
+  </script>
+</body>
+</html>
